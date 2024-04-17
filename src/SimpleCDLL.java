@@ -1,6 +1,7 @@
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.ConcurrentModificationException;
 
 /**
  * Circularly doubly-linked list.
@@ -12,6 +13,11 @@ public class SimpleCDLL<T> implements SimpleList<T> {
   // +--------+------------------------------------------------------------
   // | Fields |
   // +--------+
+
+  /**
+   * Counter of all changes made by an iterator
+   */
+  private int iterChanges = 0;
 
   /**
    * Dummy node we will reference
@@ -71,68 +77,85 @@ public class SimpleCDLL<T> implements SimpleList<T> {
        * null when there is no such value.
        */
       Node2<T> update = null;
-      
+
+      /**
+       * Counter that tracks number of changes made since iterator was created
+       */
+      int myChanges = SimpleCDLL.this.iterChanges;
+
       public boolean hasNext() {
+        this.failFast();
         return (this.pos < SimpleCDLL.this.size);
       } // hasNext()
 
       public T next() {
+        this.failFast();
         if (!this.hasNext()) {
           throw new NoSuchElementException();
          } // if
-         // Identify the node to update
-         this.update = this.next;
-         // Advance the cursor
-         this.prev = this.next;
-         this.next = this.next.next;
-         // Note the movement
-         ++this.pos;
-         // And return the value
-         return this.update.value;
+        // Identify the node to update
+        this.update = this.next;
+        // Advance the cursor
+        this.prev = this.next;
+        this.next = this.next.next;
+        // Note the movement
+        this.pos++;
+        // And return the value
+        return this.update.value;
        } // next()
 
       public boolean hasPrevious() {
+        this.failFast();
         return (this.pos > 0);
       } // hasPrevious()
 
       public T previous() {
+        this.failFast();
         if (!hasPrevious()) {
           throw new NoSuchElementException();
         } // if
         // move the cursor back, adjausting next to prev and prev to prev.prev
-        // adjust update to prev and decrement size
+        this.update = this.prev;
         this.next = this.prev;
         this.prev = this.prev.prev;
-        this.update = this.prev;
         this.pos--;
-        return this.update.value;
+        return this.next.value;
       } //previous()
 
       public int nextIndex() {
+        this.failFast();
         return this.pos;
       } // nextIndex()
 
 
       public int previousIndex() {
+        this.failFast();
         return this.pos - 1;
-      } // prevIndex
+      } // previousIndex()
 
       public void remove() {
+        this.failFast();
         if (this.update == null) {
           throw new IllegalStateException();
         } // if
-        this.update.remove();
+        // reached point by call to previous()
         if (this.next == this.update) {
           this.next = this.update.next;
         } // if
+        // reached point by call to next()
         if (this.prev == this.update) {
           this.prev = this.update.prev;
+          this.pos--;
         } // if
+        this.update.remove();
         SimpleCDLL.this.size--;
+        SimpleCDLL.this.iterChanges++;
+        this.myChanges++;
         this.update = null;
       } // remove()
 
       public void set(T val) {
+        this.failFast();
         if (update == null) {
           throw new IllegalStateException();
         } // if
@@ -142,11 +165,20 @@ public class SimpleCDLL<T> implements SimpleList<T> {
       } // set(T val)
 
       public void add(T val) {
+        this.failFast();
         this.prev = this.prev.insertAfter(val);
         this.update = null;
         SimpleCDLL.this.size++;
+        SimpleCDLL.this.iterChanges++;
+        this.myChanges++;
         this.pos++;
       } // add(T val)
+
+      private void failFast() {
+        if (this.myChanges != SimpleCDLL.this.iterChanges) {
+          throw new ConcurrentModificationException();
+        }// if
+      } // failFast()
     };
   }
 }
