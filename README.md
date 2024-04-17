@@ -15,6 +15,10 @@ This project is an implementation of a doubly-linked list in Java that utilizes 
 
 Using a dummy node and circular linking in this implementation simplified the code by eliminating the need for handling special cases when at the start/end of the list. The dummy node simplifies adding and removing nodes, as there's no need to specifically manage `head` or `tail` pointers or check for an empty list. The circular linking, where the last node points back to the first through the dummy, allowed easy traversal and iteration without special conditions for detecting list boundaries. As every node has a next and previous link, we have less risk of bugs associated with edge cases in list operations.
 
+## Authors
+
+- Garikai Gijima | Sam Rebelsky
+
 ## Acknowledgements
 
 - Sam Rebelsky: Provided the started code and instructions
